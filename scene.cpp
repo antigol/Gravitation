@@ -1,6 +1,7 @@
 #include "scene.h"
 #include <QGraphicsSceneMouseEvent>
 #include <QKeyEvent>
+#include <QTime>
 
 Scene::Scene(QObject *parent) :
     QGraphicsScene(parent)
@@ -73,6 +74,7 @@ void Scene::keyPressEvent(QKeyEvent *event)
         if (timer == 0) {
             while (!list.isEmpty())
                 delete list.takeLast();
+            state = 1;
         } else {
             // stop
             killTimer(timer);
@@ -87,6 +89,7 @@ void Scene::keyPressEvent(QKeyEvent *event)
 
 void Scene::timerEvent(QTimerEvent *)
 {
+    QTime t; t.start();
     for (int i = 0; i < list.size(); ++i) {
         QVector2D acceleration = QVector2D(0,0);
 
@@ -100,7 +103,7 @@ void Scene::timerEvent(QTimerEvent *)
     }
 
     for (int i = 0; i < list.size(); ++i) {
-        list[i]->move(0.03);
+        list[i]->move(0.02);
     }
 
     update();
@@ -109,14 +112,14 @@ void Scene::timerEvent(QTimerEvent *)
 Object::Object(QGraphicsScene *s, const QPointF &pos)
 {
     scene = s;
-    ellipseItem = scene->addEllipse(0, 0, 0, 0);
+    ellipseItem = scene->addEllipse(0, 0, 0, 0, QPen(), QBrush(QColor(100, 100, 100, 50)));
     ellipseItem->setPos(pos);
     speedLineItem = scene->addLine(0, 0, 0, 0, QPen(Qt::darkGreen));
     accelerationLineItem = scene->addLine(0, 0, 0, 0, QPen(Qt::red));
     mass = 0;
     speed = QVector2D(0, 0);
     path.moveTo(pos);
-    cm = scene->addPath(path, QPen(Qt::blue));
+    cm = scene->addPath(path, QPen(QColor(50, 50, 255, 50)));
 }
 
 Object::~Object()
@@ -130,20 +133,21 @@ Object::~Object()
 void Object::setRadius(double r)
 {
     ellipseItem->setRect(-r, -r, 2*r, 2*r);
-    speedLineItem->setLine(QLineF(ellipseItem->pos(), ellipseItem->pos()));
     mass = r*r*r;
 }
 
 void Object::setSpeed(const QVector2D &s)
 {
     speed = s;
-    speedLineItem->setLine(QLineF(ellipseItem->pos(), ellipseItem->pos() + s.toPointF()));
+    speedLineItem->setLine(QLineF(QPointF(0, 0), s.toPointF()));
+    speedLineItem->setPos(pos());
 }
 
 void Object::setAcceleration(const QVector2D &a)
 {
     acceleration = a;
-    accelerationLineItem->setLine(QLineF(ellipseItem->pos(), ellipseItem->pos() + a.toPointF()));
+    accelerationLineItem->setLine(QLineF(QPointF(0, 0), a.toPointF()));
+    accelerationLineItem->setPos(pos());
 }
 
 QPointF Object::pos() const
@@ -164,10 +168,12 @@ QVector2D Object::calculateAcceleration(const Object *o)
 void Object::move(double time)
 {
     speed += acceleration * time;
-    setSpeed(speed);
 
     ellipseItem->setPos(ellipseItem->pos() + speed.toPointF() * time);
     path.lineTo(ellipseItem->pos());
     cm->setPath(path);
+
+    setSpeed(speed);
+    setAcceleration(acceleration);
 }
 

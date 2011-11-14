@@ -9,7 +9,7 @@ Widget::Widget(QWidget *parent)
     setMouseTracking(true);
 
     Scene *scene = new Scene(this);
-    scene->setSceneRect(-10000, -10000, 20000, 20000);
+    scene->setSceneRect(-100000, -100000, 200000, 200000);
     setScene(scene);
 }
 
