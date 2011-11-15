@@ -18,6 +18,8 @@ public:
     void setAcceleration(const QVector2D &a);
     QPointF pos() const;
 
+    QVector2D calculateForce(const Object *o);
+    QVector2D calculateAcceleration(const QVector2D &force);
     QVector2D calculateAcceleration(const Object *o);
     void move(double time);
 private:
@@ -30,7 +32,7 @@ private:
     QVector2D speed;
     QVector2D acceleration;
 
-    QGraphicsPathItem *cm;
+    QGraphicsPathItem *pathItem;
     QPainterPath path;
 };
 

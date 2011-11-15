@@ -62,11 +62,13 @@ void Scene::keyPressEvent(QKeyEvent *event)
         if (timer == 0) {
             // start
             timer = startTimer(20);
+            // set to an invalid state
             state = 100;
         } else {
             // stop
             killTimer(timer);
             timer = 0;
+            // set to first state
             state = 1;
         }
         break;
@@ -87,22 +89,54 @@ void Scene::keyPressEvent(QKeyEvent *event)
     }
 }
 
+int k(int n, int i, int j)
+{
+    return (-i*i + i*(2*n-3) + 2*j - 2) / 2;
+}
+
 void Scene::timerEvent(QTimerEvent *)
 {
     QTime t; t.start();
-    for (int i = 0; i < list.size(); ++i) {
-        QVector2D acceleration = QVector2D(0,0);
 
-        for (int j = 0; j < list.size(); ++j) {
-            if (i != j) {
-                acceleration += list[i]->calculateAcceleration(list[j]);
-            }
+    int n = list.size();
+    QVector<QVector2D> forces;
+    // c'est comme l'histoire des poignées de mains, y en a (n²-n) sur 2
+    forces.reserve((n * (n - 1)) / 2);
+
+    /**************************************
+      Exemple avec n = 5
+
+      i j k
+      0 1 0
+        2 1
+        3 2
+        4 3
+      1 2 4
+        3 5
+        4 6
+      2 3 7
+        4 8
+      3 4 9   ==> k = (-i²+i(2n-3)+2j-2)/2
+
+      *************************************/
+    for (int i = 0; i < n; ++i) {
+        for (int j = i + 1; j < n; ++j) {
+            forces.append(list[i]->calculateForce(list[j]));
         }
+    }
 
+    for (int i = 0; i < n; ++i) {
+        QVector2D acceleration = QVector2D(0,0);
+        for (int j = i + 1; j < n; ++j) {
+            acceleration += list[i]->calculateAcceleration(forces[k(n,i,j)]);
+        }
+        for (int p = 0; p < i; ++p) {
+            acceleration += list[i]->calculateAcceleration(-forces[k(n,p,i)]);
+        }
         list[i]->setAcceleration(acceleration);
     }
 
-    for (int i = 0; i < list.size(); ++i) {
+    for (int i = 0; i < n; ++i) {
         list[i]->move(0.02);
     }
 
@@ -119,7 +153,7 @@ Object::Object(QGraphicsScene *s, const QPointF &pos)
     mass = 0;
     speed = QVector2D(0, 0);
     path.moveTo(pos);
-    cm = scene->addPath(path, QPen(QColor(50, 50, 255, 50)));
+    pathItem = scene->addPath(path, QPen(QColor(50, 50, 255, 50)));
 }
 
 Object::~Object()
@@ -127,7 +161,7 @@ Object::~Object()
     scene->removeItem(ellipseItem);
     scene->removeItem(speedLineItem);
     scene->removeItem(accelerationLineItem);
-    scene->removeItem(cm);
+    scene->removeItem(pathItem);
 }
 
 void Object::setRadius(double r)
@@ -155,6 +189,21 @@ QPointF Object::pos() const
     return ellipseItem->pos();
 }
 
+QVector2D Object::calculateForce(const Object *o)
+{
+    QVector2D force = QVector2D(o->ellipseItem->pos() - ellipseItem->pos());
+    double k = 4.0 * o->mass*mass / force.lengthSquared();
+    force.normalize();
+    force *= k;
+
+    return force;
+}
+
+QVector2D Object::calculateAcceleration(const QVector2D &force)
+{
+    return force / mass;
+}
+
 QVector2D Object::calculateAcceleration(const Object *o)
 {
     QVector2D force = QVector2D(o->ellipseItem->pos() - ellipseItem->pos());
@@ -170,8 +219,9 @@ void Object::move(double time)
     speed += acceleration * time;
 
     ellipseItem->setPos(ellipseItem->pos() + speed.toPointF() * time);
+
     path.lineTo(ellipseItem->pos());
-    cm->setPath(path);
+    pathItem->setPath(path);
 
     setSpeed(speed);
     setAcceleration(acceleration);
