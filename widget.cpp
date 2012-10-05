@@ -1,16 +1,20 @@
 #include "widget.h"
-#include "scene.h"
 #include <QKeyEvent>
+#include <QVBoxLayout>
 
 Widget::Widget(QWidget *parent)
-    : QGraphicsView(parent)
+    : QWidget(parent)
 {
-    setMinimumSize(400, 400);
-    setMouseTracking(true);
-
-    Scene *scene = new Scene(this);
+    scene = new Scene(this);
     scene->setSceneRect(-100000, -100000, 200000, 200000);
-    setScene(scene);
+
+    view = new QGraphicsView(scene, this);
+    view->setMouseTracking(true);
+
+    QVBoxLayout *l = new QVBoxLayout(this);
+    l->addWidget(view);
+
+    //    setWindowState(windowState() | Qt::WindowFullScreen);
 }
 
 Widget::~Widget()
@@ -23,13 +27,13 @@ void Widget::keyPressEvent(QKeyEvent *event)
     switch (event->key()) {
     case Qt::Key_Plus:
         event->accept();
-        scale(1.1, 1.1);
+        view->scale(1.1, 1.1);
         break;
     case Qt::Key_Minus:
         event->accept();
-        scale(0.9, 0.9);
+        view->scale(0.9, 0.9);
         break;
     }
 
-    QGraphicsView::keyPressEvent(event);
+    QWidget::keyPressEvent(event);
 }

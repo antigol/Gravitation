@@ -12,7 +12,9 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         widget.cpp \
-    scene.cpp
+    scene.cpp \
+    corpus.cpp
 
 HEADERS  += widget.h \
-    scene.h
+    scene.h \
+    corpus.h
